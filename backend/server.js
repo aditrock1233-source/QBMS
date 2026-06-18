@@ -9,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 app.get('/', (req, res) => {
   res.json({ message: 'QBMS API is running ✅' });
 });
@@ -20,4 +23,4 @@ mongoose.connect(process.env.MONGO_URI)
     console.log('✅ MongoDB connected');
     app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
   })
-  .catch((err) => console.error('❌ DB Error:', err));
+  .catch((err) => console.error('❌ DB connection error:', err));
