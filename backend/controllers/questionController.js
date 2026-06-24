@@ -1,4 +1,5 @@
 const Question = require('../models/Question');
+const QuestionVersion = require('../models/QuestionVersion');
 
 // @desc    Create a new question
 // @route   POST /api/questions
@@ -38,10 +39,53 @@ const createQuestion = async (req, res) => {
   }
 };
 
+// @desc    Bulk create multiple questions at once
+// @route   POST /api/questions/bulk
+// @access  Private (Faculty, Admin)
+const bulkCreateQuestions = async (req, res) => {
+  try {
+    const { questions } = req.body;
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: 'Provide a non-empty array of questions.' });
+    }
+
+    const results = { created: [], failed: [] };
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      try {
+        const created = await Question.create({
+          title: q.title,
+          description: q.description,
+          subject: q.subject,
+          topic: q.topic,
+          questionType: q.questionType,
+          options: q.options || [],
+          correctAnswer: q.correctAnswer,
+          marks: q.marks,
+          difficulty: q.difficulty,
+          bloomLevel: q.bloomLevel,
+          createdBy: req.user._id,
+        });
+        results.created.push(created._id);
+      } catch (err) {
+        results.failed.push({ index: i, title: q.title || '(no title)', error: err.message });
+      }
+    }
+
+    res.status(201).json({
+      message: `${results.created.length} created, ${results.failed.length} failed.`,
+      ...results,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all questions with search & filter
 // @route   GET /api/questions
 // @access  Private
-// Supports query params: subject, topic, difficulty, questionType, status, search
 const getQuestions = async (req, res) => {
   try {
     const { subject, topic, difficulty, questionType, status, search, page = 1, limit = 20 } = req.query;
@@ -96,7 +140,7 @@ const getQuestionById = async (req, res) => {
   }
 };
 
-// @desc    Update a question
+// @desc    Update a question (saves a version snapshot of the OLD data before changing)
 // @route   PUT /api/questions/:id
 // @access  Private (Faculty who created it, or Admin)
 const updateQuestion = async (req, res) => {
@@ -105,6 +149,17 @@ const updateQuestion = async (req, res) => {
     if (!question) {
       return res.status(404).json({ message: 'Question not found' });
     }
+
+    // Save a snapshot of the question BEFORE we change it
+    const lastVersion = await QuestionVersion.findOne({ question: question._id }).sort({ versionNumber: -1 });
+    const nextVersionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+
+    await QuestionVersion.create({
+      question: question._id,
+      versionNumber: nextVersionNumber,
+      snapshot: question.toObject(),
+      editedBy: req.user._id,
+    });
 
     const fields = [
       'title', 'description', 'subject', 'topic', 'questionType',
@@ -124,6 +179,61 @@ const updateQuestion = async (req, res) => {
 
     const updated = await question.save();
     res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get version history for a question
+// @route   GET /api/questions/:id/versions
+// @access  Private
+const getQuestionVersions = async (req, res) => {
+  try {
+    const versions = await QuestionVersion.find({ question: req.params.id })
+      .populate('editedBy', 'name email')
+      .sort({ versionNumber: -1 });
+
+    res.json(versions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Restore a question to a previous version
+// @route   PUT /api/questions/:id/restore/:versionId
+// @access  Private (Faculty, Admin)
+const restoreQuestionVersion = async (req, res) => {
+  try {
+    const version = await QuestionVersion.findById(req.params.versionId);
+    if (!version) {
+      return res.status(404).json({ message: 'Version not found' });
+    }
+
+    const question = await Question.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    // Snapshot current state before restoring, so this is undoable too
+    const lastVersion = await QuestionVersion.findOne({ question: question._id }).sort({ versionNumber: -1 });
+    const nextVersionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+    await QuestionVersion.create({
+      question: question._id,
+      versionNumber: nextVersionNumber,
+      snapshot: question.toObject(),
+      editedBy: req.user._id,
+    });
+
+    const fields = [
+      'title', 'description', 'subject', 'topic', 'questionType',
+      'options', 'correctAnswer', 'marks', 'difficulty', 'bloomLevel',
+    ];
+    fields.forEach((field) => {
+      question[field] = version.snapshot[field];
+    });
+
+    const restored = await question.save();
+    res.json(restored);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -163,6 +273,21 @@ const getQuestionStats = async (req, res) => {
       { $group: { _id: '$questionType', count: { $sum: 1 } } },
     ]);
 
+    const byBloomLevel = await Question.aggregate([
+      { $group: { _id: '$bloomLevel', count: { $sum: 1 } } },
+    ]);
+
+    const bySubject = await Question.aggregate([
+      { $group: { _id: '$subject', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+    ]);
+
+    const mostUsed = await Question.find({ usageCount: { $gt: 0 } })
+      .sort({ usageCount: -1 })
+      .limit(5)
+      .select('title usageCount subject');
+
     res.json({
       total,
       approved,
@@ -170,6 +295,9 @@ const getQuestionStats = async (req, res) => {
       rejected,
       byDifficulty,
       byType,
+      byBloomLevel,
+      bySubject,
+      mostUsed,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -178,9 +306,12 @@ const getQuestionStats = async (req, res) => {
 
 module.exports = {
   createQuestion,
+  bulkCreateQuestions,
   getQuestions,
   getQuestionById,
   updateQuestion,
   deleteQuestion,
   getQuestionStats,
+  getQuestionVersions,
+  restoreQuestionVersion,
 };

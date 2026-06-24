@@ -8,12 +8,15 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import QuestionBank from './pages/QuestionBank';
 import AddQuestion from './pages/AddQuestion';
+import QuestionHistory from './pages/QuestionHistory';
 import Approvals from './pages/Approvals';
 import GeneratePaper from './pages/GeneratePaper';
 import PapersList from './pages/PapersList';
 import PaperDetail from './pages/PaperDetail';
+import Analytics from './pages/Analytics';
 
 import './styles/global.css';
+import './styles/global_additions.css';
 
 function App() {
   return (
@@ -40,6 +43,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/questions/:id/history" element={<QuestionHistory />} />
             <Route
               path="/approvals"
               element={
@@ -58,6 +62,7 @@ function App() {
               }
             />
             <Route path="/papers/:id" element={<PaperDetail />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Route>
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

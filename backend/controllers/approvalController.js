@@ -1,4 +1,5 @@
 const Question = require('../models/Question');
+const { notify } = require('../utils/notify');
 
 // @desc    Get all pending questions for review
 // @route   GET /api/approvals/pending
@@ -31,6 +32,14 @@ const approveQuestion = async (req, res) => {
     question.rejectionReason = '';
 
     const updated = await question.save();
+
+    await notify(
+      question.createdBy,
+      `Your question "${question.title.slice(0, 60)}" was approved.`,
+      'QuestionApproved',
+      question._id
+    );
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -54,6 +63,14 @@ const rejectQuestion = async (req, res) => {
     question.rejectionReason = reason || 'Does not meet quality standards';
 
     const updated = await question.save();
+
+    await notify(
+      question.createdBy,
+      `Your question "${question.title.slice(0, 60)}" was rejected: ${question.rejectionReason}`,
+      'QuestionRejected',
+      question._id
+    );
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -1,7 +1,9 @@
 const QuestionPaper = require('../models/QuestionPaper');
 const Question = require('../models/Question');
+const User = require('../models/User');
 const { generateMultipleSets } = require('../utils/paperGenerator');
 const { generatePaperPDF } = require('../utils/pdfGenerator');
+const { notify } = require('../utils/notify');
 
 // @desc    Generate a new randomized question paper (with multiple sets)
 // @route   POST /api/papers/generate
@@ -14,9 +16,9 @@ const generatePaper = async (req, res) => {
       examType,
       totalMarks,
       durationMinutes,
-      difficultyMix, // { easy: 30, medium: 50, hard: 20 }
-      sections,      // [{ sectionName, questionType, numberOfQuestions, marksPerQuestion }]
-      numberOfSets,  // e.g. 4
+      difficultyMix,
+      sections,
+      numberOfSets,
     } = req.body;
 
     if (!sections || sections.length === 0) {
@@ -42,11 +44,18 @@ const generatePaper = async (req, res) => {
       generatedBy: req.user._id,
     });
 
-    // Mark questions as used (for analytics - "Most Used Questions")
     const allUsedIds = sets.flatMap((s) => s.questions);
     await Question.updateMany(
       { _id: { $in: allUsedIds } },
       { $inc: { usageCount: 1 } }
+    );
+
+    // Notify all HODs and Admins that a new paper needs review
+    const reviewers = await User.find({ role: { $in: ['hod', 'admin'] } });
+    await Promise.all(
+      reviewers.map((r) =>
+        notify(r._id, `New question paper "${paper.title}" was generated and needs approval.`, 'PaperGenerated', paper._id)
+      )
     );
 
     res.status(201).json(paper);
@@ -86,7 +95,7 @@ const getAllPapers = async (req, res) => {
 
     const papers = await QuestionPaper.find(filter)
       .populate('generatedBy', 'name email')
-      .select('-sets.questions') // skip heavy question data in list view
+      .select('-sets.questions')
       .sort({ createdAt: -1 });
 
     res.json(papers);
@@ -107,6 +116,14 @@ const approvePaper = async (req, res) => {
     paper.status = 'Approved';
     paper.approvedBy = req.user._id;
     const updated = await paper.save();
+
+    await notify(
+      paper.generatedBy,
+      `Your question paper "${paper.title}" was approved.`,
+      'PaperApproved',
+      paper._id
+    );
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });

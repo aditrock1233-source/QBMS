@@ -16,12 +16,14 @@ const topicRoutes = require('./routes/topicRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const approvalRoutes = require('./routes/approvalRoutes');
 const paperRoutes = require('./routes/paperRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/papers', paperRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/', (req, res) => {

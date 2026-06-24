@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const navItemsByRole = {
   faculty: [
@@ -7,17 +8,20 @@ const navItemsByRole = {
     { to: '/questions', label: 'Question Bank' },
     { to: '/questions/add', label: 'Add Question' },
     { to: '/papers', label: 'Question Papers' },
+    { to: '/analytics', label: 'Analytics' },
   ],
   hod: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/approvals', label: 'Pending Approvals' },
     { to: '/questions', label: 'Question Bank' },
     { to: '/papers', label: 'Question Papers' },
+    { to: '/analytics', label: 'Analytics' },
   ],
   examcell: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/papers', label: 'Question Papers' },
     { to: '/papers/generate', label: 'Generate Paper' },
+    { to: '/analytics', label: 'Analytics' },
   ],
   admin: [
     { to: '/dashboard', label: 'Dashboard' },
@@ -26,6 +30,7 @@ const navItemsByRole = {
     { to: '/approvals', label: 'Pending Approvals' },
     { to: '/papers', label: 'Question Papers' },
     { to: '/papers/generate', label: 'Generate Paper' },
+    { to: '/analytics', label: 'Analytics' },
   ],
 };
 
@@ -74,6 +79,9 @@ const Layout = () => {
       </aside>
 
       <main className="main-content">
+        <div className="topbar">
+          <NotificationBell />
+        </div>
         <Outlet />
       </main>
     </div>

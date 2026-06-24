@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
 
 const QuestionBank = () => {
@@ -116,7 +117,10 @@ const QuestionBank = () => {
                     <td>
                       <span className={`badge badge-${q.status?.toLowerCase()}`}>{q.status}</span>
                     </td>
-                    <td>
+                    <td style={{ display: 'flex', gap: 6 }}>
+                      <Link to={`/questions/${q._id}/history`} className="btn btn-secondary btn-sm">
+                        History
+                      </Link>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDelete(q._id)}>
                         Delete
                       </button>
