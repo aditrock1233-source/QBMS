@@ -87,5 +87,7 @@ const Layout = () => {
     </div>
   );
 };
-
+<p style={{ fontSize: 11, textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 8 }}>
+  Built with ❤️ by Team QBMS
+</p>
 export default Layout;
