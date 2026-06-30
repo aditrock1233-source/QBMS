@@ -27,12 +27,17 @@ const navItemsByRole = {
   admin: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/questions', label: 'Question Bank' },
-    { to: '/questions/add', label: 'Add Question' },
+    { to: '/questions/add', label: 'Add Question' },  
     { to: '/approvals', label: 'Pending Approvals' },
     { to: '/papers', label: 'Question Papers' },
     { to: '/papers/generate', label: 'Generate Paper' },
     { to: '/analytics', label: 'Analytics' },
     { to: '/departments', label: 'Departments' },
+  ],
+  student: [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/student/quizzes', label: 'Mock Quizzes' },
+    { to: '/student/leaderboard', label: 'Leaderboard' },
   ],
 };
 
@@ -43,7 +48,7 @@ const Layout = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const links = navItemsByRole[user?.role] || navItemsByRole.faculty;
@@ -54,7 +59,13 @@ const Layout = () => {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-logo">QBMS</div>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 10px 20px' }}>
+          <img src="/logo.png" alt="QBMS Logo" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+          <div>
+            <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--color-primary)', display: 'block', lineHeight: 1.1 }}>QBMS</span>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', lineHeight: 1.2 }}>Question Bank Management System</span>
+          </div>
+        </div>
 
         {links.map((link) => (
           <NavLink

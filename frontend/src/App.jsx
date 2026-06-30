@@ -19,6 +19,8 @@ import PapersList from './pages/PapersList';
 import PaperDetail from './pages/PaperDetail';
 import Analytics from './pages/Analytics';
 import Departments from './pages/Departments';
+import MockQuizzes from './pages/MockQuizzes';
+import StudentLeaderboard from './pages/StudentLeaderboard';
 
 import './styles/global.css';
 import './styles/global_additions.css';
@@ -87,6 +89,24 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <Departments />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/student/quizzes"
+                element={
+                  <ProtectedRoute allowedRoles={['student', 'admin']}>
+                    <MockQuizzes />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/student/leaderboard"
+                element={
+                  <ProtectedRoute allowedRoles={['student', 'admin']}>
+                    <StudentLeaderboard />
                   </ProtectedRoute>
                 }
               />

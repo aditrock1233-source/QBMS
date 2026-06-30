@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { generateMultipleSets } = require('../utils/paperGenerator');
 const { generatePaperPDF } = require('../utils/pdfGenerator');
 const { notify } = require('../utils/notify');
+const { generateAIQuestions } = require('../utils/aiService');
 
 // @desc    Generate a new randomized question paper (with multiple sets)
 // @route   POST /api/papers/generate
@@ -19,18 +20,63 @@ const generatePaper = async (req, res) => {
       difficultyMix,
       sections,
       numberOfSets,
+      useAI,
+      syllabusFocus,
+      customInstructions,
     } = req.body;
 
     if (!sections || sections.length === 0) {
       return res.status(400).json({ message: 'At least one section pattern is required' });
     }
 
-    const sets = await generateMultipleSets(
-      subject,
-      sections,
-      difficultyMix || { easy: 30, medium: 50, hard: 20 },
-      numberOfSets || 1
-    );
+    let sets = [];
+    if (useAI) {
+      const setLabels = ['Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F'];
+      const setsCount = numberOfSets || 1;
+
+      for (let i = 0; i < setsCount; i++) {
+        const setName = setLabels[i] || `Set ${i + 1}`;
+        const rawQuestions = await generateAIQuestions(
+          subject,
+          sections,
+          difficultyMix || { easy: 30, medium: 50, hard: 20 },
+          i,
+          syllabusFocus,
+          customInstructions
+        );
+
+        const savedQuestionIds = [];
+        for (const q of rawQuestions) {
+          const createdQ = await Question.create({
+            title: q.title,
+            description: q.description || '',
+            subject,
+            topic: null,
+            questionType: q.questionType,
+            options: q.options || [],
+            correctAnswer: q.correctAnswer || '',
+            marks: q.marks,
+            difficulty: q.difficulty,
+            bloomLevel: q.bloomLevel || 'Understand',
+            status: 'Pending',
+            createdBy: req.user._id,
+          });
+          savedQuestionIds.push(createdQ._id);
+        }
+
+        sets.push({
+          setName,
+          questions: savedQuestionIds,
+        });
+      }
+    } else {
+      sets = await generateMultipleSets(
+        subject,
+        sections,
+        difficultyMix || { easy: 30, medium: 50, hard: 20 },
+        numberOfSets || 1
+      );
+    }
 
     const paper = await QuestionPaper.create({
       title,
@@ -42,6 +88,7 @@ const generatePaper = async (req, res) => {
       sections,
       sets,
       generatedBy: req.user._id,
+      isAIGenerated: !!useAI,
     });
 
     const allUsedIds = sets.flatMap((s) => s.questions);
@@ -116,6 +163,13 @@ const approvePaper = async (req, res) => {
     paper.status = 'Approved';
     paper.approvedBy = req.user._id;
     const updated = await paper.save();
+
+    // Auto-approve all pending questions in this paper so they enter the active question bank
+    const questionIds = paper.sets.flatMap((s) => s.questions);
+    await Question.updateMany(
+      { _id: { $in: questionIds }, status: 'Pending' },
+      { status: 'Approved', approvedBy: req.user._id }
+    );
 
     await notify(
       paper.generatedBy,

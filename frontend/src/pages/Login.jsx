@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'faculty';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,17 +27,23 @@ const Login = () => {
     }
   };
 
+  const isStudent = role === 'student';
+
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Welcome back</h1>
-        <p className="subtitle">Log in to QBMS to manage your question bank.</p>
+        <h1>{isStudent ? '🎓 Student Terminal Login' : '🔐 Staff Portal Login'}</h1>
+        <p className="subtitle">
+          {isStudent
+            ? 'Log in to attempt mock quizzes, review tutor grades, and track rankings.'
+            : 'Log in to manage questions, moderate approvals, and generate papers.'}
+        </p>
 
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               type="email"
               className="form-control"
@@ -59,12 +68,12 @@ const Login = () => {
             />
           </div>
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log in'}
+            {loading ? 'Logging in...' : isStudent ? 'Enter Student Terminal' : 'Enter Staff Portal'}
           </button>
         </form>
 
         <div className="auth-footer">
-          Don't have an account? <Link to="/register">Register</Link>
+          Don't have an account? <Link to={isStudent ? '/register?role=student' : '/register?role=faculty'}>Register</Link>
         </div>
       </div>
     </div>

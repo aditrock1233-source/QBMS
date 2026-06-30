@@ -24,14 +24,15 @@ const registerUser = async (req, res) => {
     });
 
     if (user) {
+      const populatedUser = await User.findById(user._id).populate('department');
       res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        designation: user.designation,
-        token: generateToken(user._id, user.role),
+        _id: populatedUser._id,
+        name: populatedUser.name,
+        email: populatedUser.email,
+        role: populatedUser.role,
+        department: populatedUser.department,
+        designation: populatedUser.designation,
+        token: generateToken(populatedUser._id, populatedUser.role),
       });
     }
   } catch (error) {
@@ -45,7 +46,7 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('department');
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -70,7 +71,7 @@ const loginUser = async (req, res) => {
 // @access  Private
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id).select('-password').populate('department');
     if (user) {
       res.json(user);
     } else {

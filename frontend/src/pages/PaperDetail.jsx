@@ -69,12 +69,24 @@ const PaperDetail = () => {
             {paper.subject} · {paper.examType} · {paper.totalMarks} marks · {paper.durationMinutes} minutes
           </p>
         </div>
-        <span className={`badge badge-${paper.status?.toLowerCase()}`}>{paper.status}</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {paper.isAIGenerated && (
+            <span className="badge" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              ✨ AI Generated
+            </span>
+          )}
+          <span className={`badge badge-${paper.status?.toLowerCase()}`}>{paper.status}</span>
+        </div>
       </div>
 
       {canApprove && (
-        <div className="card" style={{ marginBottom: 18 }}>
-          <p style={{ marginBottom: 10, fontSize: 14 }}>This paper is awaiting your approval before it can be used.</p>
+        <div className="card" style={{ marginBottom: 18, borderLeft: paper.isAIGenerated ? '4px solid #a855f7' : undefined }}>
+          <p style={{ marginBottom: 10, fontSize: 14 }}>
+            This paper is awaiting your approval before it can be used.
+            {paper.isAIGenerated && (
+              <strong> Approving this paper will also automatically approve and add its AI-generated questions to the active Question Bank.</strong>
+            )}
+          </p>
           <button className="btn btn-success" onClick={handleApprove}>
             Approve paper
           </button>
@@ -117,9 +129,16 @@ const PaperDetail = () => {
                 ))}
               </ul>
             )}
-            <span className={`badge badge-${q.difficulty?.toLowerCase()}`} style={{ marginTop: 6 }}>
-              {q.difficulty}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              <span className={`badge badge-${q.difficulty?.toLowerCase()}`}>
+                {q.difficulty}
+              </span>
+              {q.status === 'Pending' && (
+                <span className="badge" style={{ background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a' }}>
+                  ⏳ Pending review (AI)
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>

@@ -11,6 +11,7 @@ const {
   getQuestionStats,
   getQuestionVersions,
   restoreQuestionVersion,
+  generateAIQuestion,
 } = require('../controllers/questionController');
 
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
@@ -18,6 +19,7 @@ const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 // Stats and bulk routes must come BEFORE /:id to avoid being treated as an ID
 router.get('/stats', protect, getQuestionStats);
 router.post('/bulk', protect, authorizeRoles('faculty', 'admin'), bulkCreateQuestions);
+router.post('/generate-ai', protect, authorizeRoles('faculty', 'admin'), generateAIQuestion);
 
 router.post('/', protect, authorizeRoles('faculty', 'admin'), createQuestion);
 router.get('/', protect, getQuestions);

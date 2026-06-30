@@ -245,6 +245,11 @@ const LandingPage = () => {
           .lp-roles { grid-template-columns: 1fr 1fr; }
           .lp-features { grid-template-columns: 1fr; }
         }
+        .terminal-card:hover {
+          transform: translateY(-4px);
+          border-color: var(--violet-light) !important;
+          background: rgba(124,58,237,0.06) !important;
+        }
       `}</style>
 
       <div className="lp-bg" />
@@ -252,14 +257,16 @@ const LandingPage = () => {
         <nav className="lp-nav">
           <div className="lp-nav__brand">QBMS <span>Question Bank</span></div>
           <div className="lp-nav__links">
+            <a href="#terminals">Access Gateways</a>
             <a href="#workflow">Workflow</a>
             <a href="#features">Features</a>
             {user ? (
               <Link to="/dashboard" className="lp-nav__cta">Go to dashboard →</Link>
             ) : (
               <>
-                <Link to="/login">Log in</Link>
-                <Link to="/register" className="lp-nav__cta">Get started</Link>
+                <Link to="/login?role=student" style={{ color: 'var(--cyan)' }}>Student Portal</Link>
+                <Link to="/login?role=faculty">Staff Portal</Link>
+                <Link to="/register?role=faculty" className="lp-nav__cta">Get started</Link>
               </>
             )}
           </div>
@@ -304,6 +311,73 @@ const LandingPage = () => {
                 </svg>
                 Shuffle again
               </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Gateway Access Terminals */}
+        <div className="lp-section-head" id="terminals" style={{ marginTop: '80px' }}>
+          <div className="lp-section-tag" style={{ color: 'var(--magenta)' }}>Terminals</div>
+          <h2 className="display">Choose Your Access Gateway</h2>
+          <p>Log in directly to your designated environment: the Student Mock Quiz terminal or the Faculty Exam portal.</p>
+        </div>
+
+        <section className="lp-section" style={{ marginBottom: '80px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            {/* Student card */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--line)',
+              borderRadius: '16px',
+              padding: '36px 30px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              transition: 'transform 0.3s, border-color 0.3s',
+            }}
+            className="terminal-card"
+            >
+              <div style={{ fontSize: '28px' }}>🎓</div>
+              <h3 className="display" style={{ fontSize: '22px', margin: 0 }}>Student Mock Quiz Terminal</h3>
+              <p style={{ color: 'var(--text-dim)', fontSize: '14px', lineHeight: 1.5, margin: 0, flex: 1 }}>
+                Practice mock quizzes pulled from approved department subject pools, test your speed with timers, review grading sheets, and check your rank on the leaderboard.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <Link to="/login?role=student" className="lp-btn-ghost" style={{ flex: 1, textAlign: 'center', padding: '10px 18px', fontSize: '13.5px', borderRadius: '8px' }}>
+                  Student Login
+                </Link>
+                <Link to="/register?role=student" className="lp-btn-primary" style={{ flex: 1, textAlign: 'center', padding: '10px 18px', fontSize: '13.5px', borderRadius: '8px', boxShadow: 'none' }}>
+                  Register
+                </Link>
+              </div>
+            </div>
+
+            {/* Faculty card */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--line)',
+              borderRadius: '16px',
+              padding: '36px 30px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              transition: 'transform 0.3s, border-color 0.3s',
+            }}
+            className="terminal-card"
+            >
+              <div style={{ fontSize: '28px' }}>🔐</div>
+              <h3 className="display" style={{ fontSize: '22px', margin: 0 }}>Faculty & Staff Portal</h3>
+              <p style={{ color: 'var(--text-dim)', fontSize: '14px', lineHeight: 1.5, margin: 0, flex: 1 }}>
+                Author and tag questions, submit drafts for moderation, approve questions as HOD, generate randomized exam papers (with custom AI models), and print PDF sets.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <Link to="/login?role=faculty" className="lp-btn-ghost" style={{ flex: 1, textAlign: 'center', padding: '10px 18px', fontSize: '13.5px', borderRadius: '8px' }}>
+                  Staff Login
+                </Link>
+                <Link to="/register?role=faculty" className="lp-btn-primary" style={{ flex: 1, textAlign: 'center', padding: '10px 18px', fontSize: '13.5px', borderRadius: '8px', boxShadow: 'none' }}>
+                  Register
+                </Link>
+              </div>
             </div>
           </div>
         </section>

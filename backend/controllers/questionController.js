@@ -1,5 +1,6 @@
 const Question = require('../models/Question');
 const QuestionVersion = require('../models/QuestionVersion');
+const { generateSingleAIQuestion } = require('../utils/aiService');
 
 // @desc    Create a new question
 // @route   POST /api/questions
@@ -304,6 +305,32 @@ const getQuestionStats = async (req, res) => {
   }
 };
 
+// @desc    Generate a question using AI on the fly (for form autofill)
+// @route   POST /api/questions/generate-ai
+// @access  Private (Faculty, Admin)
+const generateAIQuestion = async (req, res) => {
+  try {
+    const { subject, topicPrompt, questionType, difficulty, bloomLevel, customInstructions } = req.body;
+    
+    if (!subject || !questionType) {
+      return res.status(400).json({ message: 'Subject and Question Type are required' });
+    }
+
+    const generated = await generateSingleAIQuestion(
+      subject,
+      topicPrompt,
+      questionType,
+      difficulty || 'Medium',
+      bloomLevel || 'Understand',
+      customInstructions
+    );
+
+    res.json(generated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createQuestion,
   bulkCreateQuestions,
@@ -314,4 +341,5 @@ module.exports = {
   getQuestionStats,
   getQuestionVersions,
   restoreQuestionVersion,
+  generateAIQuestion,
 };
