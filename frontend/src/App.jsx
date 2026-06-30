@@ -47,6 +47,7 @@ function App() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/questions" element={<QuestionBank />} />
+
               <Route
                 path="/questions/add"
                 element={
@@ -55,7 +56,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route path="/questions/:id/history" element={<QuestionHistory />} />
+
               <Route
                 path="/approvals"
                 element={
@@ -64,7 +67,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route path="/papers" element={<PapersList />} />
+
               <Route
                 path="/papers/generate"
                 element={
@@ -73,8 +78,10 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route path="/papers/:id" element={<PaperDetail />} />
               <Route path="/analytics" element={<Analytics />} />
+
               <Route
                 path="/departments"
                 element={
@@ -85,6 +92,7 @@ function App() {
               />
             </Route>
 
+            {/* Unknown URLs */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
