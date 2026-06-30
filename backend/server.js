@@ -17,6 +17,7 @@ const questionRoutes = require('./routes/questionRoutes');
 const approvalRoutes = require('./routes/approvalRoutes');
 const paperRoutes = require('./routes/paperRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/topics', topicRoutes);
@@ -24,6 +25,7 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/papers', paperRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/departments', departmentRoutes);
 
 // Health check
 app.get('/', (req, res) => {

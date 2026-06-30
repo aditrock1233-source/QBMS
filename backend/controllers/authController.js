@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { generateResetToken, hashToken } = require('../utils/resetToken');
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -8,13 +9,11 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, department, designation } = req.body;
 
-    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create new user
     const user = await User.create({
       name,
       email,
@@ -46,8 +45,6 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Find user by email
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
@@ -121,10 +118,71 @@ const updateUser = async (req, res) => {
   }
 };
 
+// @desc    Request a password reset link
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    // Always respond the same way whether or not the user exists,
+    // so attackers can't use this endpoint to discover registered emails.
+    if (!user) {
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    const { resetToken, hashedToken } = generateResetToken();
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+    await user.save();
+
+    // NOTE: In production this would be emailed via Nodemailer/SendGrid/etc.
+    // For now we log it to the server console so it can be tested without
+    // setting up an email service.
+    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+    console.log('🔑 Password reset link (would be emailed):', resetUrl);
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset password using a valid token
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+const resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const hashedToken = hashToken(req.params.token);
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Reset link is invalid or has expired.' });
+    }
+
+    user.password = password; // pre-save hook will hash it
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
   getAllUsers,
   updateUser,
+  forgotPassword,
+  resetPassword,
 };

@@ -7,6 +7,8 @@ const {
   getUserProfile,
   getAllUsers,
   updateUser,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
@@ -14,8 +16,10 @@ const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 // Public routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
 
-// Private routes (must be logged in)
+// Private routes
 router.get('/profile', protect, getUserProfile);
 
 // Admin only routes

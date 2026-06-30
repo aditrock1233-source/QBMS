@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 
 const navItemsByRole = {
@@ -31,11 +32,13 @@ const navItemsByRole = {
     { to: '/papers', label: 'Question Papers' },
     { to: '/papers/generate', label: 'Generate Paper' },
     { to: '/analytics', label: 'Analytics' },
+    { to: '/departments', label: 'Departments' },
   ],
 };
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -65,6 +68,11 @@ const Layout = () => {
         ))}
 
         <div className="sidebar-footer">
+          <button className="theme-toggle" onClick={toggleTheme}>
+            <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            <span className="theme-toggle__icon">{theme === 'dark' ? '🌙' : '☀️'}</span>
+          </button>
+
           <div className="user-chip">
             <div className="user-avatar">{initials}</div>
             <div className="user-meta">
