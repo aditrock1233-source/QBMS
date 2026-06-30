@@ -224,13 +224,13 @@ const DEFAULT_MOCK_QUESTIONS = [
 /**
  * Generate questions using Google Gemini, or fall back to simulation
  */
-const generateAIQuestions = async (subject, sections, difficultyMix, setIndex = 0, syllabusFocus = '', customInstructions = '') => {
+const generateAIQuestions = async (subject, sections, difficultyMix, setIndex = 0, syllabusFocus = '', customInstructions = '', excludeQuestions = []) => {
   const apiKey = process.env.GEMINI_API_KEY;
   const setLabel = String.fromCharCode(65 + setIndex); // A, B, C...
 
   if (!apiKey) {
-    console.warn(`\u26a0\ufe0f GEMINI_API_KEY is not defined. Falling back to Simulated AI Question Generation for Set ${setLabel}...`);
-    return generateSimulatedQuestions(subject, sections, difficultyMix, setLabel);
+    console.warn(`⚠️ GEMINI_API_KEY is not defined. Falling back to Simulated AI Question Generation for Set ${setLabel}...`);
+    return generateSimulatedQuestions(subject, sections, difficultyMix, setLabel, setIndex);
   }
 
   try {
@@ -242,6 +242,15 @@ const generateAIQuestions = async (subject, sections, difficultyMix, setIndex = 
         responseMimeType: 'application/json',
       }
     });
+
+    let exclusionPrompt = '';
+    if (excludeQuestions && excludeQuestions.length > 0) {
+      exclusionPrompt = `
+CRITICAL: To ensure the sets are completely distinct and cover different concepts/questions, you MUST NOT duplicate or closely overlap with any of the following questions that were already generated in previous sets:
+${excludeQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}
+Please focus on different topics, angles, scenarios, or concepts of the subject.
+`;
+    }
 
     const prompt = `
 You are an expert academic examiner. Generate a list of exam questions for the subject "${subject}" (Set ${setLabel}) based on the following section rules and difficulty requirements.
@@ -258,6 +267,7 @@ Difficulty distribution requirement:
 - Hard: ${difficultyMix.hard}%
 
 ${customInstructions ? `Additional Custom Commands/Instructions: ${customInstructions}` : ''}
+${exclusionPrompt}
 
 You MUST generate EXACTLY the number of questions specified in each section.
 Ensure the questions for this Set (Set ${setLabel}) are unique, challenging, and strictly academically accurate.
@@ -289,61 +299,106 @@ Return a JSON array of question objects. Every question in the array must strict
     }
     throw new Error('Gemini response did not contain an array of questions');
   } catch (error) {
-    console.error(`\u274c Live Gemini generation failed for Set ${setLabel}:`, error.message);
-    console.warn(`\u26a0\ufe0f Falling back to Simulated AI Question Generation for Set ${setLabel} due to error.`);
-    return generateSimulatedQuestions(subject, sections, difficultyMix, setLabel);
+    console.error(`❌ Live Gemini generation failed for Set ${setLabel}:`, error.message);
+    console.warn(`⚠️ Falling back to Simulated AI Question Generation for Set ${setLabel} due to error.`);
+    return generateSimulatedQuestions(subject, sections, difficultyMix, setLabel, setIndex);
   }
 };
 
 /**
  * Generate simulated questions matching the prompt specifications if AI key is missing or fails
  */
-function generateSimulatedQuestions(subject, sections, difficultyMix, setLabel) {
-  // Determine subject group
-  const subLower = subject.toLowerCase();
-  let pool = DEFAULT_MOCK_QUESTIONS;
-  if (subLower.includes('mern') || subLower.includes('react') || subLower.includes('node') || subLower.includes('web') || subLower.includes('js') || subLower.includes('javascript') || subLower.includes('frontend')) {
-    pool = MOCK_QUESTIONS_BY_SUBJECT.web;
-  } else if (subLower.includes('python') || subLower.includes('machine') || subLower.includes('data science') || subLower.includes('ml')) {
-    pool = MOCK_QUESTIONS_BY_SUBJECT.python;
-  } else if (subLower.includes('sql') || subLower.includes('database') || subLower.includes('dbms') || subLower.includes('mongo')) {
-    pool = MOCK_QUESTIONS_BY_SUBJECT.db;
-  }
+function generateSimulatedQuestions(subject, sections, difficultyMix, setLabel, setIndex = 0) {
+  const topics = [
+    'fundamentals and core principles',
+    'architectural patterns and design',
+    'performance optimization techniques',
+    'security protocols and standards',
+    'error handling and troubleshooting',
+    'testing and quality assurance',
+    'integration and scalability',
+    'future trends and emerging methodologies',
+    'compliance and auditing control',
+    'operational lifecycle management'
+  ];
 
   const generated = [];
 
   for (const section of sections) {
     const { questionType, numberOfQuestions, marksPerQuestion } = section;
 
-    // Find questions in the pool of the same type
-    let matchingQuestions = pool.filter(q => q.questionType === questionType);
-    if (matchingQuestions.length === 0) {
-      // Fallback to general pool matching type
-      matchingQuestions = DEFAULT_MOCK_QUESTIONS.filter(q => q.questionType === questionType);
-    }
-    if (matchingQuestions.length === 0) {
-      // If still nothing, just use whatever is in pool
-      matchingQuestions = pool;
-    }
-
     // Generate the required number of questions
     for (let count = 0; count < numberOfQuestions; count++) {
-      // Pick a base question from pool, cycling if needed
-      const baseQ = matchingQuestions[count % matchingQuestions.length] || pool[0];
+      const topicIndex = (count + setIndex * 3) % topics.length;
+      const topic = topics[topicIndex];
 
-      // Add set variation to title to ensure uniqueness
-      const uniqueTitle = `${baseQ.title} (Set ${setLabel} - Q${count + 1} - ${subject})`;
+      let title = '';
+      let options = [];
+      let correctAnswer = '';
+      let difficulty = 'Medium';
+      let bloomLevel = 'Understand';
+
+      if (questionType === 'MCQ') {
+        title = `Which of the following best describes the primary objective of "${topic}" in the context of ${subject}?`;
+        options = [
+          `To optimize system efficiency and streamline processes for ${topic}.`,
+          `To enforce strict structural boundaries and access control for ${topic}.`,
+          `To manage state propagation and event loops for ${topic}.`,
+          `To establish database connection routing patterns for ${topic}.`
+        ];
+        correctAnswer = options[0];
+        difficulty = 'Easy';
+        bloomLevel = 'Remember';
+      } else if (questionType === 'TrueFalse') {
+        title = `True or False: In the context of ${subject}, implementing "${topic}" is considered a deprecated practice.`;
+        options = [];
+        correctAnswer = 'False';
+        difficulty = 'Easy';
+        bloomLevel = 'Understand';
+      } else if (questionType === 'ShortAnswer') {
+        title = `Briefly explain how "${topic}" influences the overall system design and workflow in ${subject}.`;
+        options = [];
+        correctAnswer = `It ensures modular decoupling, ease of maintenance, and high scalability across components.`;
+        difficulty = 'Medium';
+        bloomLevel = 'Understand';
+      } else if (questionType === 'LongAnswer') {
+        title = `Provide a detailed analysis of "${topic}" in ${subject}. Discuss its historical context, modern implementations, and compare it against alternative practices.`;
+        options = [];
+        correctAnswer = `A comprehensive evaluation discussing performance gains, implementation complexity, and case studies.`;
+        difficulty = 'Hard';
+        bloomLevel = 'Analyze';
+      } else if (questionType === 'CaseStudy') {
+        title = `Analyze a scenario where a system built with ${subject} experiences severe operational degradation due to misconfigured "${topic}". Propose a mitigation plan.`;
+        options = [];
+        correctAnswer = `Diagnose resource locks, optimize thread pools, scale horizontal nodes, and introduce caching layers.`;
+        difficulty = 'Hard';
+        bloomLevel = 'Evaluate';
+      } else if (questionType === 'Programming') {
+        title = `Implement a modular code structure or design schematic in ${subject} illustrating a standard pattern for "${topic}".`;
+        options = [];
+        correctAnswer = `// Implementation of ${topic}\nfunction initializeModule() {\n  // Code logic goes here\n}`;
+        difficulty = 'Hard';
+        bloomLevel = 'Apply';
+      }
+
+      // Add set variation label
+      let uniqueTitle = title;
+      if (uniqueTitle.endsWith('?')) {
+        uniqueTitle = uniqueTitle.slice(0, -1) + ` (Set ${setLabel} - Q${count + 1} - ${subject})?`;
+      } else {
+        uniqueTitle = uniqueTitle + ` (Set ${setLabel} - Q${count + 1} - ${subject})`;
+      }
 
       // Create a question structure
       generated.push({
         title: uniqueTitle,
-        description: baseQ.description || `Generated for subject: ${subject}, Set ${setLabel}.`,
+        description: `Auto-generated question for topic: ${topic} (${difficulty} difficulty)`,
         questionType: questionType,
-        options: baseQ.options || [],
-        correctAnswer: baseQ.correctAnswer || `Sample answer for ${questionType}`,
+        options: options,
+        correctAnswer: correctAnswer,
         marks: marksPerQuestion,
-        difficulty: baseQ.difficulty || 'Medium',
-        bloomLevel: baseQ.bloomLevel || 'Understand'
+        difficulty: difficulty,
+        bloomLevel: bloomLevel
       });
     }
   }

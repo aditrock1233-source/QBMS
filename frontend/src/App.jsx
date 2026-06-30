@@ -48,7 +48,14 @@ function App() {
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/questions" element={<QuestionBank />} />
+              <Route
+                path="/questions"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'admin']}>
+                    <QuestionBank />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/questions/add"
@@ -59,7 +66,14 @@ function App() {
                 }
               />
 
-              <Route path="/questions/:id/history" element={<QuestionHistory />} />
+              <Route
+                path="/questions/:id/history"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'admin']}>
+                    <QuestionHistory />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/approvals"
@@ -70,7 +84,14 @@ function App() {
                 }
               />
 
-              <Route path="/papers" element={<PapersList />} />
+              <Route
+                path="/papers"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'examcell', 'admin']}>
+                    <PapersList />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/papers/generate"
@@ -81,8 +102,22 @@ function App() {
                 }
               />
 
-              <Route path="/papers/:id" element={<PaperDetail />} />
-              <Route path="/analytics" element={<Analytics />} />
+              <Route
+                path="/papers/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'examcell', 'admin']}>
+                    <PaperDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'examcell', 'admin']}>
+                    <Analytics />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/departments"

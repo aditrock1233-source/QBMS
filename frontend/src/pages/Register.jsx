@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -9,14 +9,12 @@ const Register = () => {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    password: '',
     role: queryRole === 'student' ? 'student' : 'faculty',
     department: '',
     designation: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -28,8 +26,8 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      await register(form);
-      navigate('/dashboard');
+      await api.post('/auth/register', form);
+      navigate(`/login?role=${isStudent ? 'student' : 'faculty'}&registered=true`);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed.');
     } finally {
@@ -75,19 +73,7 @@ const Register = () => {
               required
             />
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              className="form-control"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="At least 6 characters"
-              required
-              minLength={6}
-            />
-          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label>Role</label>

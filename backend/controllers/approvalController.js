@@ -92,9 +92,53 @@ const getApprovalSummary = async (req, res) => {
   }
 };
 
+// @desc    Approve multiple questions at once
+// @route   PUT /api/approvals/bulk-approve
+// @access  Private (HOD, Admin)
+const bulkApproveQuestions = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'Provide an array of question IDs to approve.' });
+    }
+
+    const result = await Question.updateMany(
+      { _id: { $in: ids }, status: 'Pending' },
+      {
+        $set: {
+          status: 'Approved',
+          approvedBy: req.user._id,
+          rejectionReason: '',
+        },
+      }
+    );
+
+    // Retrieve approved questions to trigger notifications
+    const approvedQuestions = await Question.find({ _id: { $in: ids } });
+
+    // Send notifications (non-blocking)
+    for (const q of approvedQuestions) {
+      await notify(
+        q.createdBy,
+        `Your question "${q.title.slice(0, 60)}" was approved.`,
+        'QuestionApproved',
+        q._id
+      );
+    }
+
+    res.json({
+      message: `Successfully approved ${result.modifiedCount} questions.`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getPendingQuestions,
   approveQuestion,
   rejectQuestion,
   getApprovalSummary,
+  bulkApproveQuestions,
 };

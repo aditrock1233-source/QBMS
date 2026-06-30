@@ -6,12 +6,14 @@ const Approvals = () => {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState(null);
   const [reason, setReason] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchPending = async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/approvals/pending');
       setQuestions(data);
+      setSelectedIds([]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -23,10 +25,39 @@ const Approvals = () => {
     fetchPending();
   }, []);
 
+  const handleToggleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === questions.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(questions.map((q) => q._id));
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Approve all ${selectedIds.length} selected questions?`)) return;
+    try {
+      await api.put('/approvals/bulk-approve', { ids: selectedIds });
+      setQuestions(questions.filter((q) => !selectedIds.includes(q._id)));
+      setSelectedIds([]);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not approve selected questions.');
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await api.put(`/approvals/${id}/approve`);
       setQuestions(questions.filter((q) => q._id !== id));
+      setSelectedIds(selectedIds.filter((item) => item !== id));
     } catch (err) {
       alert(err.response?.data?.message || 'Could not approve question.');
     }
@@ -36,6 +67,7 @@ const Approvals = () => {
     try {
       await api.put(`/approvals/${id}/reject`, { reason });
       setQuestions(questions.filter((q) => q._id !== id));
+      setSelectedIds(selectedIds.filter((item) => item !== id));
       setRejectingId(null);
       setReason('');
     } catch (err) {
@@ -77,35 +109,96 @@ const Approvals = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-2">
-          {questions.map((q) => {
-            const isAI = q.description?.includes('Generated for subject:') || q.description?.includes('difficulty)');
-            return (
-              <div
-                className="card"
-                key={q._id}
+        <>
+          {/* Bulk Approvals Control Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'var(--color-surface)',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            border: '1px solid var(--color-border)',
+            marginBottom: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input
+                type="checkbox"
+                id="select-all-approvals"
+                checked={questions.length > 0 && selectedIds.length === questions.length}
+                onChange={handleSelectAll}
                 style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: 'var(--color-primary)'
+                }}
+              />
+              <label htmlFor="select-all-approvals" style={{ fontWeight: 600, fontSize: '13.5px', cursor: 'pointer', color: 'var(--color-text)' }}>
+                Select All ({questions.length} items)
+              </label>
+            </div>
+            {selectedIds.length > 0 && (
+              <button
+                className="btn btn-success"
+                onClick={handleBulkApprove}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  borderLeft: isAI ? '4px solid #a855f7' : '1px solid var(--color-border)',
-                  position: 'relative'
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
                 }}
               >
-                {/* Meta details */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className={`badge badge-${q.difficulty?.toLowerCase()}`}>{q.difficulty}</span>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {isAI && (
-                      <span className="badge" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontSize: 11 }}>
-                        ✨ AI Generated
+                ✔️ Approve Selected ({selectedIds.length})
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-2">
+            {questions.map((q) => {
+              const isAI = q.description?.includes('Generated for subject:') || q.description?.includes('difficulty)');
+              return (
+                <div
+                  className="card"
+                  key={q._id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    borderLeft: isAI ? '4px solid #a855f7' : '1px solid var(--color-border)',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Meta details */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(q._id)}
+                        onChange={() => handleToggleSelect(q._id)}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          cursor: 'pointer',
+                          accentColor: 'var(--color-primary)'
+                        }}
+                      />
+                      <span className={`badge badge-${q.difficulty?.toLowerCase()}`}>{q.difficulty}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {isAI && (
+                        <span className="badge" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontSize: 11 }}>
+                          ✨ AI Generated
+                        </span>
+                      )}
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                        {q.questionType}
                       </span>
-                    )}
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                      {q.questionType}
-                    </span>
+                    </div>
                   </div>
-                </div>
 
                 {/* Content */}
                 <div style={{ flex: 1 }}>
@@ -172,6 +265,7 @@ const Approvals = () => {
             );
           })}
         </div>
+      </>
       )}
     </div>
   );

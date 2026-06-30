@@ -33,6 +33,7 @@ const generatePaper = async (req, res) => {
     if (useAI) {
       const setLabels = ['Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F'];
       const setsCount = numberOfSets || 1;
+      const allGeneratedTitles = [];
 
       for (let i = 0; i < setsCount; i++) {
         const setName = setLabels[i] || `Set ${i + 1}`;
@@ -42,8 +43,14 @@ const generatePaper = async (req, res) => {
           difficultyMix || { easy: 30, medium: 50, hard: 20 },
           i,
           syllabusFocus,
-          customInstructions
+          customInstructions,
+          allGeneratedTitles
         );
+
+        // Record the titles of all generated questions so far
+        rawQuestions.forEach(q => {
+          if (q.title) allGeneratedTitles.push(q.title);
+        });
 
         const savedQuestionIds = [];
         for (const q of rawQuestions) {
@@ -228,6 +235,32 @@ const deletePaper = async (req, res) => {
   }
 };
 
+// @desc    Disapprove an approved paper
+// @route   PUT /api/papers/:id/disapprove
+// @access  Private (Admin only)
+const disapprovePaper = async (req, res) => {
+  try {
+    const paper = await QuestionPaper.findById(req.params.id);
+    if (!paper) {
+      return res.status(404).json({ message: 'Paper not found' });
+    }
+    paper.status = 'Pending';
+    paper.approvedBy = null;
+    const updated = await paper.save();
+
+    await notify(
+      paper.generatedBy,
+      `Your question paper "${paper.title}" was disapproved by Admin.`,
+      'PaperDisapproved',
+      paper._id
+    );
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   generatePaper,
   getPaperById,
@@ -235,4 +268,5 @@ module.exports = {
   approvePaper,
   downloadPaperPDF,
   deletePaper,
+  disapprovePaper,
 };

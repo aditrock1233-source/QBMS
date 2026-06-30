@@ -10,7 +10,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -18,8 +18,17 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const loggedInUser = await login(email, password);
+      const isStudentRole = loggedInUser.role === 'student';
+      if (isStudent && !isStudentRole) {
+        logout();
+        setError('Access denied. Faculty/Staff credentials cannot be used to access the Student Terminal.');
+      } else if (!isStudent && isStudentRole) {
+        logout();
+        setError('Access denied. Student credentials cannot be used to access the Staff Portal.');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.');
     } finally {
@@ -28,6 +37,7 @@ const Login = () => {
   };
 
   const isStudent = role === 'student';
+  const registered = searchParams.get('registered') === 'true';
 
   return (
     <div className="auth-page">
@@ -38,6 +48,12 @@ const Login = () => {
             ? 'Log in to attempt mock quizzes, review tutor grades, and track rankings.'
             : 'Log in to manage questions, moderate approvals, and generate papers.'}
         </p>
+
+        {registered && (
+          <div className="success-banner" style={{ marginBottom: 16 }}>
+            🎉 Your credentials have been successfully generated and sent to your registered Gmail address. Please use them to log in below.
+          </div>
+        )}
 
         {error && <div className="error-banner">{error}</div>}
 

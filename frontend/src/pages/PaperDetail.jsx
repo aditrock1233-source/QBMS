@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const PaperDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [paper, setPaper] = useState(null);
   const [activeSet, setActiveSet] = useState(0);
@@ -34,6 +35,26 @@ const PaperDetail = () => {
     }
   };
 
+  const handleDisapprove = async () => {
+    try {
+      const { data } = await api.put(`/papers/${id}/disapprove`);
+      setPaper({ ...paper, status: data.status });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not disapprove paper.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this question paper? This action cannot be undone.')) return;
+    try {
+      await api.delete(`/papers/${id}`);
+      alert('Paper deleted successfully.');
+      navigate('/papers');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not delete paper.');
+    }
+  };
+
   const handleDownload = async (setName) => {
     setDownloading(true);
     try {
@@ -58,7 +79,9 @@ const PaperDetail = () => {
   if (!paper) return <p>Paper not found.</p>;
 
   const currentSet = paper.sets[activeSet];
+  const isAdmin = user?.role === 'admin';
   const canApprove = ['hod', 'admin'].includes(user?.role) && paper.status === 'Pending';
+  const canDisapprove = isAdmin && paper.status === 'Approved';
 
   return (
     <div>
@@ -87,8 +110,42 @@ const PaperDetail = () => {
               <strong> Approving this paper will also automatically approve and add its AI-generated questions to the active Question Bank.</strong>
             )}
           </p>
-          <button className="btn btn-success" onClick={handleApprove}>
-            Approve paper
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-success" onClick={handleApprove}>
+              Approve paper
+            </button>
+            {isAdmin && (
+              <button className="btn btn-danger" onClick={handleDelete}>
+                Delete paper
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {canDisapprove && (
+        <div className="card" style={{ marginBottom: 18, borderLeft: '4px solid var(--color-warning)' }}>
+          <p style={{ marginBottom: 10, fontSize: 14 }}>
+            This paper is currently <strong>Approved</strong>. As an administrator, you can disapprove or delete it.
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-warning" onClick={handleDisapprove}>
+              Disapprove Paper
+            </button>
+            <button className="btn btn-danger" onClick={handleDelete}>
+              Delete Paper
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!canApprove && !canDisapprove && isAdmin && (
+        <div className="card" style={{ marginBottom: 18, borderLeft: '4px solid var(--color-danger)' }}>
+          <p style={{ marginBottom: 10, fontSize: 14 }}>
+            This paper is currently <strong>{paper.status}</strong>. As an administrator, you can delete it.
+          </p>
+          <button className="btn btn-danger" onClick={handleDelete}>
+            Delete Paper
           </button>
         </div>
       )}

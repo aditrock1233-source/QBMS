@@ -1,29 +1,44 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { generateResetToken, hashToken } = require('../utils/resetToken');
+const { sendCredentialsEmail } = require('../utils/emailService');
+
+const generateRandomPassword = () => {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
 
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, department, designation } = req.body;
+    const { name, email, role, department, designation } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const generatedPassword = generateRandomPassword();
+
     const user = await User.create({
       name,
       email,
-      password,
+      password: generatedPassword,
       role,
       department,
       designation,
     });
 
     if (user) {
+      // Send credentials email (non-blocking / asynchronous, but we await to ensure it logs properly)
+      await sendCredentialsEmail(user.email, user.name, generatedPassword, user.role);
+
       const populatedUser = await User.findById(user._id).populate('department');
       res.status(201).json({
         _id: populatedUser._id,

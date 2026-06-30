@@ -91,7 +91,33 @@ const getQuestions = async (req, res) => {
   try {
     const { subject, topic, difficulty, questionType, status, search, page = 1, limit = 20 } = req.query;
 
+    const isStudent = req.user.role === 'student';
     const filter = {};
+
+    if (isStudent) {
+      // Students can only access approved questions
+      filter.status = 'Approved';
+      if (subject) filter.subject = subject;
+      if (topic) filter.topic = topic;
+      if (difficulty) filter.difficulty = difficulty;
+
+      // Limit to exactly 5 questions, page 1 only
+      const questions = await Question.find(filter)
+        .populate('topic', 'name')
+        .populate('createdBy', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      const total = await Question.countDocuments(filter);
+
+      return res.json({
+        questions,
+        total,
+        page: 1,
+        totalPages: Math.ceil(total / 5),
+      });
+    }
+
     if (subject) filter.subject = subject;
     if (topic) filter.topic = topic;
     if (difficulty) filter.difficulty = difficulty;
