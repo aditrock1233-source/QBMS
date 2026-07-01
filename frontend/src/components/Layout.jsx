@@ -20,6 +20,7 @@ const navItemsByRole = {
   ],
   examcell: [
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/questions', label: 'Question Bank' },
     { to: '/approvals', label: 'Pending Approvals' },
     { to: '/papers', label: 'Question Papers' },
     { to: '/papers/generate', label: 'Generate Paper' },

@@ -82,6 +82,17 @@ const Approvals = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this question permanently?')) return;
+    try {
+      await api.delete(`/questions/${id}`);
+      setQuestions(questions.filter((q) => q._id !== id));
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not delete question.');
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await api.put(`/approvals/${id}/approve`);
@@ -152,7 +163,7 @@ const Approvals = () => {
       ) : (
         <>
           {/* Bulk Approvals Control Bar */}
-          {['hod', 'admin'].includes(user?.role) && (
+          {['hod', 'admin', 'examcell'].includes(user?.role) && (
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -182,52 +193,54 @@ const Approvals = () => {
               </div>
               {selectedIds.length > 0 && (
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    className="btn btn-success"
-                    onClick={handleBulkApprove}
-                    style={{
-                      padding: '6px 16px',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
-                    }}
-                  >
-                    ✔️ Approve Selected ({selectedIds.length})
-                  </button>
+                  {['hod', 'admin'].includes(user?.role) && (
+                    <button
+                      className="btn btn-success"
+                      onClick={handleBulkApprove}
+                      style={{
+                        padding: '6px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+                      }}
+                    >
+                      ✔️ Approve Selected ({selectedIds.length})
+                    </button>
+                  )}
                   {user?.role === 'admin' && (
-                    <>
-                      <button
-                        className="btn btn-warning"
-                        onClick={handleBulkReject}
-                        style={{
-                          padding: '6px 16px',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        ❌ Reject Selected ({selectedIds.length})
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        onClick={handleBulkDelete}
-                        style={{
-                          padding: '6px 16px',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        🗑️ Delete Selected ({selectedIds.length})
-                      </button>
-                    </>
+                    <button
+                      className="btn btn-warning"
+                      onClick={handleBulkReject}
+                      style={{
+                        padding: '6px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      ❌ Reject Selected ({selectedIds.length})
+                    </button>
+                  )}
+                  {['admin', 'examcell'].includes(user?.role) && (
+                    <button
+                      className="btn btn-danger"
+                      onClick={handleBulkDelete}
+                      style={{
+                        padding: '6px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      🗑️ Delete Selected ({selectedIds.length})
+                    </button>
                   )}
                 </div>
               )}
@@ -252,7 +265,7 @@ const Approvals = () => {
                   {/* Meta details */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      {['hod', 'admin'].includes(user?.role) && (
+                      {['hod', 'admin', 'examcell'].includes(user?.role) && (
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(q._id)}
@@ -362,6 +375,11 @@ const Approvals = () => {
                       {['hod', 'admin', 'examcell'].includes(user?.role) && (
                         <button className="btn btn-warning btn-sm" onClick={() => setReviewingId(q._id)}>
                           Mark for Review
+                        </button>
+                      )}
+                      {['admin', 'examcell'].includes(user?.role) && (
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(q._id)}>
+                          Delete
                         </button>
                       )}
                     </div>

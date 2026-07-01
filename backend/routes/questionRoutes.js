@@ -25,7 +25,7 @@ router.post('/', protect, authorizeRoles('faculty', 'admin'), createQuestion);
 router.get('/', protect, getQuestions);
 router.get('/:id', protect, authorizeRoles('faculty', 'hod', 'examcell', 'admin'), getQuestionById);
 router.put('/:id', protect, authorizeRoles('faculty', 'admin'), updateQuestion);
-router.delete('/:id', protect, authorizeRoles('faculty', 'admin'), deleteQuestion);
+router.delete('/:id', protect, authorizeRoles('examcell', 'admin'), deleteQuestion);
 
 router.get('/:id/versions', protect, authorizeRoles('faculty', 'hod', 'examcell', 'admin'), getQuestionVersions);
 router.put('/:id/restore/:versionId', protect, authorizeRoles('faculty', 'admin'), restoreQuestionVersion);

@@ -70,6 +70,18 @@ const QuestionBank = () => {
     }
   };
 
+  const handleReview = async (id) => {
+    const comments = window.prompt('Enter review comments for this question:');
+    if (comments === null) return;
+    try {
+      await api.put(`/approvals/${id}/review`, { comments });
+      alert('Question marked for review successfully.');
+      fetchQuestions();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not mark question for review.');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
       {/* Page Header */}
@@ -198,7 +210,12 @@ const QuestionBank = () => {
                         <Link to={`/questions/${q._id}/history`} className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: 12 }}>
                           History
                         </Link>
-                        {['admin', 'faculty'].includes(user?.role) && (
+                        {['hod', 'admin', 'examcell'].includes(user?.role) && ['Pending', 'Approved'].includes(q.status) && (
+                          <button className="btn btn-warning btn-sm" onClick={() => handleReview(q._id)} style={{ padding: '6px 12px', fontSize: 12 }}>
+                            Review
+                          </button>
+                        )}
+                        {['admin', 'examcell'].includes(user?.role) && (
                           <button className="btn btn-danger btn-sm" onClick={() => handleDelete(q._id)} style={{ padding: '6px 12px', fontSize: 12 }}>
                             Delete
                           </button>

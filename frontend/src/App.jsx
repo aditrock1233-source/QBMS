@@ -51,7 +51,7 @@ function App() {
               <Route
                 path="/questions"
                 element={
-                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'admin']}>
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'examcell', 'admin']}>
                     <QuestionBank />
                   </ProtectedRoute>
                 }
@@ -69,7 +69,7 @@ function App() {
               <Route
                 path="/questions/:id/history"
                 element={
-                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'admin']}>
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'examcell', 'admin']}>
                     <QuestionHistory />
                   </ProtectedRoute>
                 }
