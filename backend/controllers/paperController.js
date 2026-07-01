@@ -261,6 +261,47 @@ const disapprovePaper = async (req, res) => {
   }
 };
 
+// @desc    Mark a question paper for review
+// @route   PUT /api/papers/:id/review
+// @access  Private (HOD, Admin, Examcell)
+const reviewPaper = async (req, res) => {
+  try {
+    const { comments } = req.body;
+    const paper = await QuestionPaper.findById(req.params.id);
+    if (!paper) {
+      return res.status(404).json({ message: 'Paper not found' });
+    }
+
+    paper.status = 'Review';
+    paper.rejectionReason = comments || 'Marked for review';
+    const updated = await paper.save();
+
+    // Notify Faculty (creator)
+    await notify(
+      paper.generatedBy,
+      `Your question paper "${paper.title}" was marked for review: ${paper.rejectionReason}`,
+      'PaperReview',
+      paper._id
+    );
+
+    // Notify HODs and Admins
+    const User = require('../models/User');
+    const approvers = await User.find({ role: { $in: ['hod', 'admin'] } });
+    for (const u of approvers) {
+      await notify(
+        u._id,
+        `Question paper "${paper.title}" marked for review by ${req.user.role}: ${paper.rejectionReason}`,
+        'PaperReview',
+        paper._id
+      );
+    }
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   generatePaper,
   getPaperById,
@@ -269,4 +310,5 @@ module.exports = {
   downloadPaperPDF,
   deletePaper,
   disapprovePaper,
+  reviewPaper,
 };

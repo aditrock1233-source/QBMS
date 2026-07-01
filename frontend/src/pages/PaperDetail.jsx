@@ -11,6 +11,8 @@ const PaperDetail = () => {
   const [activeSet, setActiveSet] = useState(0);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [reviewComments, setReviewComments] = useState('');
+  const [showReviewInput, setShowReviewInput] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +54,17 @@ const PaperDetail = () => {
       navigate('/papers');
     } catch (err) {
       alert(err.response?.data?.message || 'Could not delete paper.');
+    }
+  };
+
+  const handleReview = async () => {
+    try {
+      const { data } = await api.put(`/papers/${id}/review`, { comments: reviewComments });
+      setPaper({ ...paper, status: data.status, rejectionReason: data.rejectionReason });
+      setShowReviewInput(false);
+      setReviewComments('');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not mark paper for review.');
     }
   };
 
@@ -102,6 +115,24 @@ const PaperDetail = () => {
         </div>
       </div>
 
+      {paper.status === 'Review' && (
+        <div className="card" style={{ marginBottom: 18, borderLeft: '4px solid var(--color-warning)', background: 'var(--color-surface)' }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-warning)', fontWeight: 700 }}>
+            ⚠️ Under Review
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--color-text)' }}>
+            <strong>Comments:</strong> {paper.rejectionReason || 'Marked for review.'}
+          </p>
+          {isAdmin && (
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              <button className="btn btn-danger btn-sm" onClick={handleDelete}>
+                Delete Paper
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {canApprove && (
         <div className="card" style={{ marginBottom: 18, borderLeft: paper.isAIGenerated ? '4px solid #a855f7' : undefined }}>
           <p style={{ marginBottom: 10, fontSize: 14 }}>
@@ -110,9 +141,12 @@ const PaperDetail = () => {
               <strong> Approving this paper will also automatically approve and add its AI-generated questions to the active Question Bank.</strong>
             )}
           </p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button className="btn btn-success" onClick={handleApprove}>
               Approve paper
+            </button>
+            <button className="btn btn-warning" onClick={() => setShowReviewInput(!showReviewInput)}>
+              {showReviewInput ? 'Cancel Review' : 'Mark for Review'}
             </button>
             {isAdmin && (
               <button className="btn btn-danger" onClick={handleDelete}>
@@ -120,6 +154,47 @@ const PaperDetail = () => {
               </button>
             )}
           </div>
+          {showReviewInput && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
+              <textarea
+                className="form-control"
+                placeholder="Enter review comments for Faculty/HOD/Admin..."
+                value={reviewComments}
+                onChange={(e) => setReviewComments(e.target.value)}
+                style={{ width: '100%', minHeight: 70, marginBottom: 10 }}
+              />
+              <button className="btn btn-warning" onClick={handleReview}>
+                Submit Review Comments
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {user?.role === 'examcell' && paper.status === 'Pending' && (
+        <div className="card" style={{ marginBottom: 18, borderLeft: '4px solid var(--color-warning)' }}>
+          <p style={{ marginBottom: 10, fontSize: 14 }}>
+            This paper is awaiting review. As Exam Cell, you can flag it for review and specify feedback comments.
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-warning" onClick={() => setShowReviewInput(!showReviewInput)}>
+              {showReviewInput ? 'Cancel Review' : 'Mark for Review'}
+            </button>
+          </div>
+          {showReviewInput && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
+              <textarea
+                className="form-control"
+                placeholder="Enter review comments for HOD, Admin, and Faculty..."
+                value={reviewComments}
+                onChange={(e) => setReviewComments(e.target.value)}
+                style={{ width: '100%', minHeight: 70, marginBottom: 10 }}
+              />
+              <button className="btn btn-warning" onClick={handleReview}>
+                Submit Review Comments
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -139,7 +214,7 @@ const PaperDetail = () => {
         </div>
       )}
 
-      {!canApprove && !canDisapprove && isAdmin && (
+      {!canApprove && !canDisapprove && isAdmin && paper.status !== 'Review' && (
         <div className="card" style={{ marginBottom: 18, borderLeft: '4px solid var(--color-danger)' }}>
           <p style={{ marginBottom: 10, fontSize: 14 }}>
             This paper is currently <strong>{paper.status}</strong>. As an administrator, you can delete it.

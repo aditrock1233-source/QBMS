@@ -9,6 +9,7 @@ const {
   downloadPaperPDF,
   deletePaper,
   disapprovePaper,
+  reviewPaper,
 } = require('../controllers/paperController');
 
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
@@ -19,6 +20,7 @@ router.get('/:id', protect, authorizeRoles('faculty', 'hod', 'examcell', 'admin'
 router.get('/:id/download/:setName', protect, authorizeRoles('faculty', 'hod', 'examcell', 'admin'), downloadPaperPDF);
 router.put('/:id/approve', protect, authorizeRoles('hod', 'admin'), approvePaper);
 router.put('/:id/disapprove', protect, authorizeRoles('admin'), disapprovePaper);
+router.put('/:id/review', protect, authorizeRoles('hod', 'admin', 'examcell'), reviewPaper);
 router.delete('/:id', protect, authorizeRoles('admin'), deletePaper);
 
 module.exports = router;

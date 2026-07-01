@@ -78,7 +78,7 @@ function App() {
               <Route
                 path="/approvals"
                 element={
-                  <ProtectedRoute allowedRoles={['hod', 'admin']}>
+                  <ProtectedRoute allowedRoles={['hod', 'admin', 'examcell']}>
                     <Approvals />
                   </ProtectedRoute>
                 }

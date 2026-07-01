@@ -50,7 +50,7 @@ const questionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Approved', 'Rejected'],
+      enum: ['Pending', 'Approved', 'Rejected', 'Review'],
       default: 'Pending',
     },
     rejectionReason: {

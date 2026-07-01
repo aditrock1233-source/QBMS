@@ -61,8 +61,12 @@ const questionPaperSchema = new mongoose.Schema(
     sets: [paperSetSchema], // multiple randomized sets (Set A, B, C, D)
     status: {
       type: String,
-      enum: ['Pending', 'Approved', 'Rejected'],
+      enum: ['Pending', 'Approved', 'Rejected', 'Review'],
       default: 'Pending',
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
     },
     generatedBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const Approvals = () => {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState(null);
   const [reason, setReason] = useState('');
+  const [reviewingId, setReviewingId] = useState(null);
+  const [reviewComments, setReviewComments] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchPending = async () => {
@@ -53,6 +57,31 @@ const Approvals = () => {
     }
   };
 
+  const handleBulkReject = async () => {
+    if (selectedIds.length === 0) return;
+    const reasonPrompt = window.prompt("Enter rejection reason for selected questions:");
+    if (reasonPrompt === null) return;
+    try {
+      await api.put('/approvals/bulk-reject', { ids: selectedIds, reason: reasonPrompt });
+      setQuestions(questions.filter((q) => !selectedIds.includes(q._id)));
+      setSelectedIds([]);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not reject selected questions.');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to permanently delete all ${selectedIds.length} selected questions?`)) return;
+    try {
+      await api.post('/approvals/bulk-delete', { ids: selectedIds });
+      setQuestions(questions.filter((q) => !selectedIds.includes(q._id)));
+      setSelectedIds([]);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not delete selected questions.');
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await api.put(`/approvals/${id}/approve`);
@@ -72,6 +101,18 @@ const Approvals = () => {
       setReason('');
     } catch (err) {
       alert(err.response?.data?.message || 'Could not reject question.');
+    }
+  };
+
+  const handleReview = async (id) => {
+    try {
+      await api.put(`/approvals/${id}/review`, { comments: reviewComments });
+      setQuestions(questions.filter((q) => q._id !== id));
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+      setReviewingId(null);
+      setReviewComments('');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not mark question for review.');
     }
   };
 
@@ -111,51 +152,87 @@ const Approvals = () => {
       ) : (
         <>
           {/* Bulk Approvals Control Bar */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--color-surface)',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            border: '1px solid var(--color-border)',
-            marginBottom: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="checkbox"
-                id="select-all-approvals"
-                checked={questions.length > 0 && selectedIds.length === questions.length}
-                onChange={handleSelectAll}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  cursor: 'pointer',
-                  accentColor: 'var(--color-primary)'
-                }}
-              />
-              <label htmlFor="select-all-approvals" style={{ fontWeight: 600, fontSize: '13.5px', cursor: 'pointer', color: 'var(--color-text)' }}>
-                Select All ({questions.length} items)
-              </label>
+          {['hod', 'admin'].includes(user?.role) && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--color-surface)',
+              padding: '12px 20px',
+              borderRadius: '10px',
+              border: '1px solid var(--color-border)',
+              marginBottom: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  id="select-all-approvals"
+                  checked={questions.length > 0 && selectedIds.length === questions.length}
+                  onChange={handleSelectAll}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: 'var(--color-primary)'
+                  }}
+                />
+                <label htmlFor="select-all-approvals" style={{ fontWeight: 600, fontSize: '13.5px', cursor: 'pointer', color: 'var(--color-text)' }}>
+                  Select All ({questions.length} items)
+                </label>
+              </div>
+              {selectedIds.length > 0 && (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    className="btn btn-success"
+                    onClick={handleBulkApprove}
+                    style={{
+                      padding: '6px 16px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+                    }}
+                  >
+                    ✔️ Approve Selected ({selectedIds.length})
+                  </button>
+                  {user?.role === 'admin' && (
+                    <>
+                      <button
+                        className="btn btn-warning"
+                        onClick={handleBulkReject}
+                        style={{
+                          padding: '6px 16px',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        ❌ Reject Selected ({selectedIds.length})
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        onClick={handleBulkDelete}
+                        style={{
+                          padding: '6px 16px',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        🗑️ Delete Selected ({selectedIds.length})
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            {selectedIds.length > 0 && (
-              <button
-                className="btn btn-success"
-                onClick={handleBulkApprove}
-                style={{
-                  padding: '6px 16px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
-                }}
-              >
-                ✔️ Approve Selected ({selectedIds.length})
-              </button>
-            )}
-          </div>
+          )}
 
           <div className="grid grid-2">
             {questions.map((q) => {
@@ -175,17 +252,19 @@ const Approvals = () => {
                   {/* Meta details */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(q._id)}
-                        onChange={() => handleToggleSelect(q._id)}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          cursor: 'pointer',
-                          accentColor: 'var(--color-primary)'
-                        }}
-                      />
+                      {['hod', 'admin'].includes(user?.role) && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(q._id)}
+                          onChange={() => handleToggleSelect(q._id)}
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            cursor: 'pointer',
+                            accentColor: 'var(--color-primary)'
+                          }}
+                        />
+                      )}
                       <span className={`badge badge-${q.difficulty?.toLowerCase()}`}>{q.difficulty}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -250,14 +329,41 @@ const Approvals = () => {
                         </button>
                       </div>
                     </div>
+                  ) : reviewingId === q._id ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <textarea
+                        className="form-control"
+                        placeholder="Provide review comments for Faculty/HOD/Admin..."
+                        value={reviewComments}
+                        onChange={(e) => setReviewComments(e.target.value)}
+                        style={{ minHeight: 60 }}
+                      />
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setReviewingId(null)}>
+                          Cancel
+                        </button>
+                        <button className="btn btn-warning btn-sm" onClick={() => handleReview(q._id)}>
+                          Confirm Review
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setRejectingId(q._id)}>
-                        Reject
-                      </button>
-                      <button className="btn btn-success btn-sm" onClick={() => handleApprove(q._id)}>
-                        Approve & Save
-                      </button>
+                      {['hod', 'admin'].includes(user?.role) && (
+                        <>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setRejectingId(q._id)}>
+                            Reject
+                          </button>
+                          <button className="btn btn-success btn-sm" onClick={() => handleApprove(q._id)}>
+                            Approve & Save
+                          </button>
+                        </>
+                      )}
+                      {['hod', 'admin', 'examcell'].includes(user?.role) && (
+                        <button className="btn btn-warning btn-sm" onClick={() => setReviewingId(q._id)}>
+                          Mark for Review
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
