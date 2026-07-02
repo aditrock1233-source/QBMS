@@ -11,7 +11,10 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://qbms-1ad4uz0nu-question-bank-management-system.vercel.app'],
+  origin: [
+  'http://localhost:3000',
+  'https://qbms-iota.vercel.app'
+],
   exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json());
