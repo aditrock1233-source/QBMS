@@ -1,6 +1,8 @@
 // Load environment variables first
 require('dotenv').config();
 
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -9,10 +11,10 @@ const app = express();
 
 // Middleware
 app.use(cors({
+  origin: ['http://localhost:3000', 'https://your-frontend.vercel.app'],
   exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json());
-
 // Debug (remove after confirming connection)
 console.log("MONGO_URI:", process.env.MONGO_URI ? "Loaded ✅" : "Not Loaded ❌");
 console.log("PORT:", process.env.PORT);
