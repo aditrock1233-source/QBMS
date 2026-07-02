@@ -15,7 +15,11 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
+
+  const isStudent = queryRole === 'student';
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -26,8 +30,8 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/register', form);
-      navigate(`/login?role=${isStudent ? 'student' : 'faculty'}&registered=true`);
+      const res = await api.post('/auth/register', form);
+      setGeneratedPassword(res.data.generatedPassword);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed.');
     } finally {
@@ -35,7 +39,89 @@ const Register = () => {
     }
   };
 
-  const isStudent = queryRole === 'student';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedPassword);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleContinue = () => {
+    navigate(`/login?role=${isStudent ? 'student' : 'faculty'}&registered=true`);
+  };
+
+  // Show the one-time password screen after successful registration
+  if (generatedPassword) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{ maxWidth: 440 }}>
+          <h1>✅ Account created!</h1>
+          <p className="subtitle">
+            Save this password now — it will only be shown this one time.
+          </p>
+
+          <div
+            style={{
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: 6,
+              padding: 15,
+              margin: '20px 0',
+            }}
+          >
+            <div style={{ fontSize: 13, color: '#374151', marginBottom: 6 }}>
+              Email
+            </div>
+            <div style={{ marginBottom: 14, color: '#4b5563' }}>{form.email}</div>
+
+            <div style={{ fontSize: 13, color: '#374151', marginBottom: 6 }}>
+              Password
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <code
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: '#4f46e5',
+                  background: '#eef2ff',
+                  padding: '6px 10px',
+                  borderRadius: 4,
+                }}
+              >
+                {generatedPassword}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="btn"
+                style={{ padding: '6px 12px', fontSize: 13 }}
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+
+          <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
+            Important: change your password from your profile settings after logging in.
+          </p>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-block"
+            onClick={handleContinue}
+          >
+            Continue to login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">

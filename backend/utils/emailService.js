@@ -49,8 +49,11 @@ Password: ${password}
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    console.log('Attempting to send to:', email);   // <-- add this line
+    const info = await transporter.sendMail(mailOptions);
     console.log(`📧 Credentials email sent successfully to ${email}`);
+    console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
   } catch (error) {
     console.error('❌ Failed to send email via SMTP:', error.message);
     console.log(`🔑 Falling back to console logging:
